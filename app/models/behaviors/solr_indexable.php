@@ -305,7 +305,6 @@ class SolrIndexableBehavior extends ModelBehavior {
 		}
 		$document = $this->__processDocument();
 		$this->__safeAddDocument($document);
-		$this->log($document);
 		return $return;
 	}
 /**
