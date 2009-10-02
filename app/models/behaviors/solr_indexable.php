@@ -203,6 +203,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * 
  * @param solr Document $document
  * @return void
+ * @access private
  */
 	function __safeAddDocument($document) {
 		try {
@@ -219,6 +220,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * 
  * @param object Model $Model
  * @return void
+ * @access private
  */
 	function __safeDeleteDocument() {
 		try {
@@ -235,6 +237,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param solr document object $document
  * @param array $data
  * @return solr document object
+ * @access private
  */
 	function __processDocumentFieldArray($document, $data) {
 		foreach ($data as $fieldname => $value) {
@@ -260,6 +263,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param string $field fieldname
  * @param array $data data array
  * @return solr document object
+ * @access private
  */
 	function __processDocumentRelationalFieldArray($document, $field, $data) {
 		foreach ($data as $item) {
@@ -274,6 +278,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * 
  * @param object $Model
  * @return solr document Object
+ * @access private
  */
 	function __processDocument() {
 		$document = new Apache_Solr_Document;
