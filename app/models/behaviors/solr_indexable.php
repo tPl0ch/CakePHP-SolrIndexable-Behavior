@@ -35,7 +35,11 @@ class SolrIndexableBehavior extends ModelBehavior {
 		'text' => '_t',
 		'relations' => '_mi'
 	);
-
+/**
+ * Holds the boost values for certain fields specified in settings
+ * 
+ * @var array
+ */
 	var $__boostTable = array();
 /**
  * The translated Schema
