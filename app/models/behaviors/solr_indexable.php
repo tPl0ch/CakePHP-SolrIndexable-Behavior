@@ -151,15 +151,19 @@ class SolrIndexableBehavior extends ModelBehavior {
  */
 	function __initTransSchema() {
 		$fields = $this->settings[$this->model->alias]['fields'];
+		$primary = $this->model->primaryKey;
 		$results = array();
 		$schema = $this->model->_schema;
+		$results = am($results, $this->__setSchemaField($primary, $schema[$primary]));
 		foreach ($schema as $fieldname => $descArray) {
 			if (!empty($fields)) {
 				if (array_key_exists($fieldname, $fields)) {
 					$results =  am($results, $this->__setSchemaField($fieldname, $descArray));
 				}
 			} else {
-				$results = am($results, $this->__setSchemaField($fieldname, $descArray));
+				if ($fieldname !== $primary) {
+					$results = am($results, $this->__setSchemaField($fieldname, $descArray));
+				}
 			}
 		}
 		$this->__transSchema = $results;
