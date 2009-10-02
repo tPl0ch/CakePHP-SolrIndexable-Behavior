@@ -1,4 +1,9 @@
 <?php
+/*
+ * Importing needed Classes
+ */
+App::import('Vendor', 'Service', array('file' => 'Solr' . DS . 'Service.php'));
+App::import('Helper', 'Time');
 /**
  * SolrIndexable Behavior
  * 
@@ -10,13 +15,6 @@
  * @subpackage app.models.behaviors
  * @author Thomas Ploch
  */
-
-/**
- * Importing needed Classes
- */
-App::import('Vendor', 'Service', array('file' => 'Solr' . DS . 'Service.php'));
-App::import('Helper', 'Time');
-
 class SolrIndexableBehavior extends ModelBehavior {
 /**
  * Mapping table for cake's integrated field types
