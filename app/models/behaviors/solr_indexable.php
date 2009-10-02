@@ -14,6 +14,7 @@ App::import('Helper', 'Time');
  * @package app
  * @subpackage app.models.behaviors
  * @author Thomas Ploch
+ * @license MIT license - see LICENSE file in root directory
  */
 class SolrIndexableBehavior extends ModelBehavior {
 /**
@@ -135,7 +136,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  */
 	function __setSchemaField($fieldname, $descArray) {
 		$result = array();
-		if ($fieldname == $this->model->primaryKey) {
+		if ($fieldname === $this->model->primaryKey) {
 			$result[$fieldname] = $this->__fieldModelId . $this->__fieldTypeMappingTable[$descArray['type']];
 		} else {
 			$result[$fieldname] = $fieldname . $this->__fieldTypeMappingTable[$descArray['type']];
@@ -145,7 +146,7 @@ class SolrIndexableBehavior extends ModelBehavior {
 /**
  * Translates the _schema of a given Model
  * 
- * If fields is empty, translates all fields.
+ * If $fields is empty, translates all fields.
  * Else translates only fields specified in $fields
  * 
  * @param object $Model The Model the Behavior is attached to
