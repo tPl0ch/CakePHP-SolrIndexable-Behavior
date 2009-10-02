@@ -67,8 +67,22 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @return void
  */
 	function setup(&$Model, $settings) {
-		if (!isset($this->settings[$Model->alias])) {
-			$this->settings[$Model->alias] = array(
+		$this->__initSettings($Model, $settings);
+		$this->__initTransSchema();
+		$this->__createBoostTable();
+		$this->__initObjects();
+	}
+/**
+ * Initializes the Behavior Settings
+ * 
+ * @param object $Model
+ * @param array $settings
+ * @return void
+ */
+	function __initSettings(&$Model, $settings) {
+		$this->model = $Model;
+		if (!isset($this->settings[$this->model->alias])) {
+			$this->settings[$this->model->alias] = array(
 				'host' => 'localhost',
 				'port' => 8080,
 				'path' => '/solr/',
@@ -77,17 +91,27 @@ class SolrIndexableBehavior extends ModelBehavior {
 				'boost' => false
 			);
 		}
-		$this->model = $Model->alias;
-		$this->settings[$Model->alias] = am($this->settings[$Model->alias], (array)$settings);
-		$this->__transSchema = $this->__translateSchema($Model, $this->settings[$Model->alias]['fields']);
-		$this->__createBoostTable();
-		$settings = $this->settings[$Model->alias];
+		$this->settings[$this->model->alias] = am($this->settings[$this->model->alias], (array)$settings);
+	}
+/**
+ * Initializes a TimeHelper and a SolR Service object
+ * 
+ * @return void
+ * @access private
+ */
+	function __initObjects() {
+		$settings = $this->settings[$this->model->alias];
 		$this->time = new TimeHelper();
 		$this->solr = new Apache_Solr_Service($settings['host'], $settings['port'], $settings['path']);
 	}
-
+/**
+ * Creates a table to look up boost values
+ * 
+ * @return void
+ * @access private
+ */
 	function __createBoostTable() {
-		foreach ($this->settings[$this->model]['fields'] as $fieldname => $value) {
+		foreach ($this->settings[$this->model->alias]['fields'] as $fieldname => $value) {
 			if (is_array($value) && isset($value['boost'])) {
 				$this->__boostTable[$fieldname] = $value['boost'];
 			}
@@ -102,9 +126,9 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @return array
  * @access private
  */
-	function __setSchemaField(&$Model, $fieldname, $descArray) {
+	function __setSchemaField($fieldname, $descArray) {
 		$result = array();
-		if ($fieldname == $Model->primaryKey) {
+		if ($fieldname == $this->model->primaryKey) {
 			$result[$fieldname] = $this->__fieldModelId . $this->__fieldTypeMappingTable[$descArray['type']];
 		} else {
 			$result[$fieldname] = $fieldname . $this->__fieldTypeMappingTable[$descArray['type']];
@@ -121,19 +145,20 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param array $fields [optional] Fields to be translated and indexed
  * @return array
  */
-	function __translateSchema(&$Model, $fields = array()) {
+	function __initTransSchema() {
+		$fields = $this->settings[$this->model->alias]['fields'];
 		$results = array();
-		$schema = $Model->_schema;
+		$schema = $this->model->_schema;
 		foreach ($schema as $fieldname => $descArray) {
 			if (!empty($fields)) {
 				if (array_key_exists($fieldname, $fields)) {
-					$results =  am($results, $this->__setSchemaField($Model, $fieldname, $descArray));
+					$results =  am($results, $this->__setSchemaField($fieldname, $descArray));
 				}
 			} else {
-				$results = am($results, $this->__setSchemaField($Model, $fieldname, $descArray));
+				$results = am($results, $this->__setSchemaField($fieldname, $descArray));
 			}
 		}
-		return $results;
+		$this->__transSchema = $results;
 	}
 /**
  * Creates a solrsafe datestring
@@ -152,11 +177,10 @@ class SolrIndexableBehavior extends ModelBehavior {
  * Creates a unique solr Document id for a given Model.
  * Format: Model_12 (Model->alias . '_' . Model->id)
  * 
- * @param object $Model
  * @return string Document id
  */
-	function __createDocId(&$Model) {
-		return $Model->alias . '_' . $Model->id;
+	function __createDocId() {
+		return $this->model->alias . '_' . $this->model->id;
 	}
 /**
  * Safely adds a document to solr index.
@@ -165,7 +189,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param solr Document $document
  * @return void
  */
-	function __saveAddDocument($document) {
+	function __safeAddDocument($document) {
 		try {
 			$this->solr->addDocument($document);
 			$this->solr->commit();
@@ -181,9 +205,9 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param object Model $Model
  * @return void
  */
-	function __saveDeleteDocument(&$Model) {
+	function __safeDeleteDocument() {
 		try {
-			$this->solr->deleteById($this->__createDocId($Model));
+			$this->solr->deleteById($this->__createDocId());
 			$this->solr->commit();
 			$this->solr->optimize();	
 		} catch (Exception $e) {
@@ -191,7 +215,7 @@ class SolrIndexableBehavior extends ModelBehavior {
 		}
 	}
 /**
- * 
+ * Processes a data array and sets the corresponding fields in the solr document
  * 
  * @param solr document object $document
  * @param array $data
@@ -209,13 +233,13 @@ class SolrIndexableBehavior extends ModelBehavior {
 				}
 			}
 			if (array_key_exists($fieldname, $this->__boostTable)) {
-				$document->setFieldBoost($fieldname, $this->__boostTable[$fieldname]);
+				$document->setFieldBoost($this->__transSchema[$fieldname], $this->__boostTable[$fieldname]);
 			}
 		}
 		return $document;
 	}
 /**
- * Processes the related
+ * Processes the related Model data in MutliValued fields
  * 
  * @param solr document object $document
  * @param string $field fieldname
@@ -236,18 +260,21 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param object $Model
  * @return solr document Object
  */
-	function __processDocument(&$Model) {
+	function __processDocument() {
 		$document = new Apache_Solr_Document;
-		foreach ($Model->data as $alias => $data) {
-			if ($alias === $Model->alias) {
+		if ($this->settings[$this->model->alias]['boost']) {
+			$document->setBoost($this->settings[$this->model->alias]['boost']);
+		}
+		foreach ($this->model->data as $alias => $data) {
+			if ($alias === $this->model->alias) {
 				$document = $this->__processDocumentFieldArray($document, $data);
-			} elseif (in_array($alias, $this->settings[$Model->alias]['include'])) {
+			} elseif (in_array($alias, $this->settings[$this->model->alias]['include'])) {
 				$field = $alias . $this->__fieldTypeMappingTable['relations'];
 				$document = $this->__processDocumentRelationalFieldArray($document, $field, $data);
 			}
 		}
-		$document->setField($this->__fieldModelAlias, $Model->alias);
-		$document->setField('id', $this->__createDocId($Model));
+		$document->setField($this->__fieldModelAlias, $this->model->alias);
+		$document->setField('id', $this->__createDocId());
 		return $document;
 	}
 /**
@@ -260,10 +287,10 @@ class SolrIndexableBehavior extends ModelBehavior {
 	function afterSave(&$Model, $created) {
 		$return = parent::afterSave($Model, $created);
 		if (!$created) {
-			$this->__saveDeleteDocument($Model);
+			$this->__safeDeleteDocument();
 		}
-		$document = $this->__processDocument($Model);
-		$this->__saveAddDocument($document);
+		$document = $this->__processDocument();
+		$this->__safeAddDocument($document);
 		$this->log($document);
 		return $return;
 	}
@@ -275,7 +302,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  */
 	function beforeDelete(&$Model) {
 		$return = parent::beforeDelete($Model);
-		$this->__saveDeleteDocument($Model);
+		$this->__safeDeleteDocument();
 		return $return;
 	}
 }
