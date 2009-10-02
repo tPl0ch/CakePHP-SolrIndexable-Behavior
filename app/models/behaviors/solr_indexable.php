@@ -1,10 +1,5 @@
 <?php
 /**
- * Importing needed Classes
- */
-App::import('Vendor', 'Service', array('file' => 'Solr' . DS . 'Service.php'));
-App::import('Helper', 'Time');
-/**
  * SolrIndexable Behavior
  * 
  * Automatically indexes or deletes data of a Model on a solr matching engine.
@@ -15,6 +10,13 @@ App::import('Helper', 'Time');
  * @subpackage app.models.behaviors
  * @author Thomas Ploch
  */
+
+/**
+ * Importing needed Classes
+ */
+App::import('Vendor', 'Service', array('file' => 'Solr' . DS . 'Service.php'));
+App::import('Helper', 'Time');
+
 class SolrIndexableBehavior extends ModelBehavior {
 /**
  * Mapping table for cake's integrated field types
@@ -39,6 +41,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * Holds the boost values for certain fields specified in settings
  * 
  * @var array
+ * @access private
  */
 	var $__boostTable = array();
 /**
@@ -69,6 +72,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param object $Model
  * @param object $settings
  * @return void
+ * @access private
  */
 	function setup(&$Model, $settings) {
 		$this->__initSettings($Model, $settings);
@@ -82,6 +86,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param object $Model
  * @param array $settings
  * @return void
+ * @access private
  */
 	function __initSettings(&$Model, $settings) {
 		$this->model = $Model;
@@ -148,6 +153,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * @param object $Model The Model the Behavior is attached to
  * @param array $fields [optional] Fields to be translated and indexed
  * @return array
+ * @access private
  */
 	function __initTransSchema() {
 		$fields = $this->settings[$this->model->alias]['fields'];
@@ -172,7 +178,8 @@ class SolrIndexableBehavior extends ModelBehavior {
  * Creates a solrsafe datestring
  * 
  * @param object $dateString
- * @return string solr safe datestring 
+ * @return string solr safe datestring
+ * @access private
  */
 	function __makeSolrTime($dateString) {
 		$date = $this->time->format('Y-m-d', intval($this->time->fromString($dateString)));
@@ -186,6 +193,7 @@ class SolrIndexableBehavior extends ModelBehavior {
  * Format: Model_12 (Model->alias . '_' . Model->id)
  * 
  * @return string Document id
+ * @access private
  */
 	function __createDocId() {
 		return $this->model->alias . '_' . $this->model->id;
